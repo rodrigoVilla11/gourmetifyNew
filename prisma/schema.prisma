@@ -1,0 +1,724 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id        String       @id @default(uuid())
+  name      String
+  plan      TenantPlan
+  status    TenantStatus
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  branches  Branch[]
+  users     User[]
+}
+
+model Branch {
+  id                String            @id @default(uuid())
+  tenantId          String
+  name              String
+  address           String?
+  phone             String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  accounts          Account[]
+  tenant            Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  cashClosures      CashClosure[]
+  categories        Category[]
+  customers         Customer[]
+  CustomerTag       CustomerTag[]
+  dailyReports      DailyReport[]
+  employeeAdvances  EmployeeAdvance[]
+  employeeBonuses   EmployeeBonus[]
+  employeePayslips  EmployeePayslip[]
+  employeeShifts    EmployeeShift[]
+  ingredients       Ingredient[]
+  Orders            Orders[]
+  products          Product[]
+  productCategories ProductCategory[]
+  ProductionBatch   ProductionBatch[]
+  purchaseOrders    PurchaseOrder[]
+  suppliers         Supplier[]
+  users             User[]
+
+  @@unique([tenantId, name])
+}
+
+model User {
+  id              String            @id @default(uuid())
+  tenantId        String
+  branchId        String?
+  name            String
+  email           String
+  password        String
+  role            UserRole
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  AccountTransfer AccountTransfer[]
+  CashClosure     CashClosure[]
+  customerNotes   CustomerNote[]
+  employee        Employee?
+  movements       Movement[]
+  ordersCashier   Orders[]          @relation("OrdersCashier")
+  createdBatches  ProductionBatch[] @relation("BatchCreatedBy")
+  PurchaseOrder   PurchaseOrder[]
+  branch          Branch?           @relation(fields: [branchId], references: [id])
+  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+}
+
+model Account {
+  id             String            @id @default(uuid())
+  branchId       String
+  name           String
+  type           AccountType
+  isActive       Boolean           @default(true)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  branch         Branch            @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  accountBalance AccountBalance?
+  transfersFrom  AccountTransfer[] @relation("FromAccount")
+  transfersTo    AccountTransfer[] @relation("ToAccount")
+  cashClosures   CashClosure[]
+  dailyReports   DailyReport[]
+  movements      Movement[]
+
+  @@unique([branchId, name])
+}
+
+model Category {
+  id           String        @id @default(uuid())
+  branchId     String
+  parentId     String?
+  name         String
+  type         CategoryType
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  branch       Branch        @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  parent       Category?     @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children     Category[]    @relation("CategoryToCategory")
+  dailyReports DailyReport[]
+  movements    Movement[]
+
+  @@unique([branchId, name, type])
+}
+
+model Movement {
+  id          String         @id @default(uuid())
+  accountId   String
+  categoryId  String?
+  supplierId  String?
+  userId      String?
+  date        DateTime       @db.Date
+  type        MovementType
+  amount      Decimal        @db.Decimal(14, 2)
+  description String?
+  documentUrl String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  account     Account        @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  category    Category?      @relation(fields: [categoryId], references: [id])
+  supplier    Supplier?      @relation(fields: [supplierId], references: [id])
+  user        User?          @relation(fields: [userId], references: [id])
+  files       MovementFile[]
+}
+
+model MovementFile {
+  id         String   @id @default(uuid())
+  movementId String
+  fileUrl    String
+  fileType   String
+  uploadedAt DateTime @default(now())
+  movement   Movement @relation(fields: [movementId], references: [id], onDelete: Cascade)
+}
+
+model AccountTransfer {
+  id            String   @id @default(uuid())
+  fromAccountId String
+  toAccountId   String
+  amount        Decimal  @db.Decimal(14, 2)
+  date          DateTime @db.Date
+  description   String?
+  userId        String?
+  createdAt     DateTime @default(now())
+  fromAccount   Account  @relation("FromAccount", fields: [fromAccountId], references: [id])
+  toAccount     Account  @relation("ToAccount", fields: [toAccountId], references: [id])
+  user          User?    @relation(fields: [userId], references: [id])
+}
+
+model CashClosure {
+  id             String   @id @default(uuid())
+  branchId       String
+  accountId      String
+  userId         String
+  date           DateTime @db.Date
+  openingBalance Decimal  @db.Decimal(14, 2)
+  totalIncome    Decimal  @db.Decimal(14, 2)
+  totalExpense   Decimal  @db.Decimal(14, 2)
+  closingBalance Decimal  @db.Decimal(14, 2)
+  realBalance    Decimal  @db.Decimal(14, 2)
+  difference     Decimal  @db.Decimal(14, 2)
+  createdAt      DateTime @default(now())
+  account        Account  @relation(fields: [accountId], references: [id])
+  branch         Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id])
+}
+
+model DailyReport {
+  id           String    @id @default(uuid())
+  branchId     String
+  accountId    String
+  categoryId   String?
+  date         DateTime  @db.Date
+  totalIncome  Decimal   @db.Decimal(14, 2)
+  totalExpense Decimal   @db.Decimal(14, 2)
+  netTotal     Decimal   @db.Decimal(14, 2)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  account      Account   @relation(fields: [accountId], references: [id])
+  branch       Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  category     Category? @relation(fields: [categoryId], references: [id])
+
+  @@unique([branchId, accountId, categoryId, date])
+}
+
+model AccountBalance {
+  id        String   @id @default(uuid())
+  accountId String   @unique
+  balance   Decimal  @db.Decimal(14, 2)
+  updatedAt DateTime @updatedAt
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+}
+
+model Employee {
+  id            String             @id @default(uuid())
+  userId        String             @unique
+  startDate     DateTime           @db.Date
+  endDate       DateTime?          @db.Date
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  advances      EmployeeAdvance[]
+  bonuses       EmployeeBonus[]
+  payslips      EmployeePayslip[]
+  rates         EmployeeRate[]
+  shifts        EmployeeShift[]
+  supplierLinks SupplierEmployee[]
+}
+
+model EmployeeRate {
+  id         String    @id @default(uuid())
+  employeeId String
+  hourlyRate Decimal   @db.Decimal(14, 2)
+  validFrom  DateTime  @db.Date
+  validTo    DateTime? @db.Date
+  createdAt  DateTime  @default(now())
+  employee   Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+}
+
+model EmployeeShift {
+  id         String      @id @default(uuid())
+  employeeId String
+  branchId   String
+  checkIn    DateTime
+  checkOut   DateTime?
+  status     ShiftStatus
+  hourlyRate Decimal     @db.Decimal(14, 2)
+  totalHours Decimal     @db.Decimal(6, 2)
+  totalPay   Decimal     @db.Decimal(14, 2)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  branch     Branch      @relation(fields: [branchId], references: [id])
+  employee   Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+}
+
+model EmployeeAdvance {
+  id          String   @id @default(uuid())
+  employeeId  String
+  branchId    String
+  date        DateTime @db.Date
+  amount      Decimal  @db.Decimal(14, 2)
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  branch      Branch   @relation(fields: [branchId], references: [id])
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+}
+
+model EmployeeBonus {
+  id          String    @id @default(uuid())
+  employeeId  String
+  branchId    String
+  date        DateTime  @db.Date
+  type        BonusType
+  amount      Decimal   @db.Decimal(14, 2)
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  branch      Branch    @relation(fields: [branchId], references: [id])
+  employee    Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+}
+
+model EmployeePayslip {
+  id            String        @id @default(uuid())
+  employeeId    String
+  branchId      String
+  periodMonth   Int
+  periodYear    Int
+  baseHours     Decimal       @db.Decimal(10, 2)
+  basePay       Decimal       @db.Decimal(14, 2)
+  bonusesTotal  Decimal       @db.Decimal(14, 2)
+  tipsTotal     Decimal       @db.Decimal(14, 2)
+  advancesTotal Decimal       @db.Decimal(14, 2)
+  finalAmount   Decimal       @db.Decimal(14, 2)
+  status        PayslipStatus
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  branch        Branch        @relation(fields: [branchId], references: [id])
+  employee      Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+}
+
+model Supplier {
+  id                 String               @id @default(uuid())
+  branchId           String
+  name               String
+  email              String?
+  phone              String?
+  notes              String?
+  defaultPaymentTerm SupplierPaymentTerm
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  movements          Movement[]
+  purchaseOrders     PurchaseOrder[]
+  branch             Branch               @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  employees          SupplierEmployee[]
+  ingredients        SupplierIngredient[]
+
+  @@unique([branchId, name])
+}
+
+model SupplierIngredient {
+  id           String     @id @default(uuid())
+  supplierId   String
+  ingredientId String
+  price        Decimal    @db.Decimal(14, 2)
+  createdAt    DateTime   @default(now())
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  supplier     Supplier   @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@unique([supplierId, ingredientId])
+}
+
+model SupplierEmployee {
+  id         String   @id @default(uuid())
+  supplierId String
+  employeeId String
+  createdAt  DateTime @default(now())
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@unique([supplierId, employeeId])
+}
+
+model PurchaseOrder {
+  id            String              @id @default(uuid())
+  supplierId    String
+  branchId      String
+  status        PurchaseOrderStatus
+  date          DateTime            @db.Date
+  total         Decimal             @db.Decimal(14, 2)
+  paymentTerm   SupplierPaymentTerm
+  createdBy     String
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  branch        Branch              @relation(fields: [branchId], references: [id])
+  createdByUser User                @relation(fields: [createdBy], references: [id])
+  supplier      Supplier            @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  items         PurchaseOrderItem[]
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(uuid())
+  purchaseOrderId String
+  ingredientId    String
+  qty             Decimal       @db.Decimal(14, 3)
+  unitPrice       Decimal       @db.Decimal(14, 2)
+  subtotal        Decimal       @db.Decimal(14, 2)
+  ingredient      Ingredient    @relation(fields: [ingredientId], references: [id])
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+}
+
+model Ingredient {
+  id                    String                       @id @default(uuid())
+  branchId              String
+  name                  String
+  unit                  UnitType
+  wastePct              Decimal                      @db.Decimal(5, 2)
+  kind                  IngredientKind
+  createdAt             DateTime                     @default(now())
+  updatedAt             DateTime                     @updatedAt
+  branch                Branch                       @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  IngredientRecipe      IngredientRecipe?
+  ingredientRecipeItems IngredientRecipeItem[]
+  inventoryItem         InventoryItem?
+  productConsumptions   ProductConsumption[]
+  batchConsumptions     ProductionBatchConsumption[]
+  PurchaseOrderItem     PurchaseOrderItem[]
+  recipeItems           RecipeItem[]
+  supplierLinks         SupplierIngredient[]
+
+  @@unique([branchId, name])
+}
+
+model InventoryItem {
+  id           String     @id @default(uuid())
+  ingredientId String     @unique
+  unit         UnitType
+  qty          Decimal    @db.Decimal(14, 3)
+  minQty       Decimal    @db.Decimal(14, 3)
+  updatedAt    DateTime   @updatedAt
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+}
+
+model ProductCategory {
+  id        String    @id @default(uuid())
+  branchId  String
+  name      String
+  position  Int       @default(0)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+  branch    Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([branchId, name])
+}
+
+model Product {
+  id           String               @id @default(uuid())
+  branchId     String
+  categoryId   String
+  name         String
+  sku          String?
+  description  String?
+  imageUrl     String?
+  status       ProductStatus
+  price        Decimal              @db.Decimal(14, 2)
+  isActive     Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  branch       Branch               @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  category     ProductCategory      @relation(fields: [categoryId], references: [id])
+  consumptions ProductConsumption[]
+  recipe       Recipe?
+  salesCosts   SalesCost[]
+
+  @@unique([branchId, name])
+}
+
+model Recipe {
+  id        String       @id @default(uuid())
+  productId String       @unique
+  notes     String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  product   Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  items     RecipeItem[]
+}
+
+model RecipeItem {
+  id           String     @id @default(uuid())
+  recipeId     String
+  ingredientId String
+  qtyPerUnit   Decimal    @db.Decimal(14, 4)
+  unit         UnitType
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+  recipe       Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+}
+
+model IngredientRecipe {
+  id                   String                 @id @default(uuid())
+  preparedIngredientId String                 @unique
+  notes                String?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  preparedIngredient   Ingredient             @relation(fields: [preparedIngredientId], references: [id], onDelete: Cascade)
+  items                IngredientRecipeItem[]
+  batches              ProductionBatch[]
+}
+
+model IngredientRecipeItem {
+  id                 String           @id @default(uuid())
+  ingredientRecipeId String
+  ingredientId       String
+  qtyPerUnit         Decimal          @db.Decimal(14, 4)
+  unit               UnitType
+  ingredient         Ingredient       @relation(fields: [ingredientId], references: [id])
+  ingredientRecipe   IngredientRecipe @relation(fields: [ingredientRecipeId], references: [id], onDelete: Cascade)
+}
+
+model ProductionBatch {
+  id                 String                       @id @default(uuid())
+  ingredientRecipeId String
+  branchId           String
+  outputQty          Decimal                      @db.Decimal(14, 3)
+  unit               UnitType
+  producedAt         DateTime
+  createdBy          String
+  totalInputCost     Decimal                      @db.Decimal(14, 2)
+  unitCost           Decimal                      @db.Decimal(14, 4)
+  branch             Branch                       @relation(fields: [branchId], references: [id])
+  createdByUser      User                         @relation("BatchCreatedBy", fields: [createdBy], references: [id])
+  ingredientRecipe   IngredientRecipe             @relation(fields: [ingredientRecipeId], references: [id], onDelete: Cascade)
+  consumptions       ProductionBatchConsumption[]
+}
+
+model ProductionBatchConsumption {
+  id                String          @id @default(uuid())
+  productionBatchId String
+  ingredientId      String
+  qtyUsed           Decimal         @db.Decimal(14, 4)
+  unit              UnitType
+  cost              Decimal         @db.Decimal(14, 4)
+  ingredient        Ingredient      @relation(fields: [ingredientId], references: [id])
+  productionBatch   ProductionBatch @relation(fields: [productionBatchId], references: [id], onDelete: Cascade)
+}
+
+model Orders {
+  id            String               @id @default(uuid())
+  branchId      String
+  cashierId     String
+  customerId    String?
+  channel       OrderChannel
+  addressId     String?
+  status        OrderStatus
+  paymentStatus PaymentStatus
+  customerName  String?
+  deliveryNotes String?
+  subtotal      Decimal              @db.Decimal(14, 2)
+  discountTotal Decimal              @db.Decimal(14, 2)
+  total         Decimal              @db.Decimal(14, 2)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  address       CustomerAddress?     @relation(fields: [addressId], references: [id])
+  branch        Branch               @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  cashier       User                 @relation("OrdersCashier", fields: [cashierId], references: [id])
+  customer      Customer?            @relation(fields: [customerId], references: [id])
+  consumptions  ProductConsumption[]
+  salesCosts    SalesCost[]
+
+  @@index([branchId, createdAt])
+  @@index([customerId, createdAt])
+}
+
+model ProductConsumption {
+  id            String     @id @default(uuid())
+  productId     String
+  ingredientId  String
+  orderRef      String
+  qtyProduct    Int
+  qtyIngredient Decimal    @db.Decimal(14, 4)
+  unit          UnitType
+  createdAt     DateTime   @default(now())
+  ingredient    Ingredient @relation(fields: [ingredientId], references: [id])
+  order         Orders     @relation(fields: [orderRef], references: [id], onDelete: Cascade)
+  product       Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model SalesCost {
+  id         String   @id @default(uuid())
+  productId  String
+  orderRef   String
+  qtyProduct Int
+  totalCost  Decimal  @db.Decimal(14, 2)
+  unitCost   Decimal  @db.Decimal(14, 4)
+  createdAt  DateTime @default(now())
+  order      Orders   @relation(fields: [orderRef], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Customer {
+  id             String            @id @default(uuid())
+  branchId       String
+  name           String
+  email          String
+  phone          String?
+  marketingOptIn Boolean           @default(false)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  branch         Branch            @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  addresses      CustomerAddress[]
+  notes          CustomerNote[]
+  tags           CustomerTagLink[]
+  orders         Orders[]
+
+  @@unique([branchId, email])
+  @@index([branchId, name])
+}
+
+model CustomerAddress {
+  id         String   @id @default(uuid())
+  customerId String
+  label      String?
+  address    String
+  city       String?
+  state      String?
+  postalCode String?
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  orders     Orders[]
+}
+
+model CustomerTag {
+  id        String            @id @default(uuid())
+  branchId  String
+  name      String
+  color     String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  branch    Branch            @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  links     CustomerTagLink[]
+
+  @@unique([branchId, name])
+}
+
+model CustomerTagLink {
+  id         String      @id @default(uuid())
+  customerId String
+  tagId      String
+  createdAt  DateTime    @default(now())
+  customer   Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tag        CustomerTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, tagId])
+}
+
+model CustomerNote {
+  id         String   @id @default(uuid())
+  customerId String
+  userId     String
+  note       String
+  createdAt  DateTime @default(now())
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+enum TenantStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum TenantPlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  CASHIER
+  COOK
+}
+
+enum AccountType {
+  CASH
+  MP
+  BANK
+  OTHER
+}
+
+enum MovementType {
+  SALE
+  SUPPLIER_PAYMENT
+  EXPENSE_GENERAL
+  INCOME_OTHER
+  ADJUSTMENT
+}
+
+enum CategoryType {
+  INCOME
+  EXPENSE
+}
+
+enum ShiftStatus {
+  WORKED
+  ABSENT
+  DAY_OFF
+  BREAK
+}
+
+enum BonusType {
+  BONUS
+  TIP
+  OTHER
+}
+
+enum PayslipStatus {
+  DRAFT
+  APPROVED
+  PAID
+}
+
+enum UnitType {
+  UNIT
+  GRAM
+  KILOGRAM
+  ML
+  LITER
+  PACK
+  OTHER
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  ORDERED
+  RECEIVED
+  CANCELLED
+}
+
+enum SupplierPaymentTerm {
+  ON_ACCOUNT
+  ON_INVOICE
+  CASH
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum OrderStatus {
+  OPEN
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+}
+
+enum OrderChannel {
+  DINE_IN
+  TAKEAWAY
+  DELIVERY
+}
+
+enum IngredientKind {
+  RAW
+  PREPARED
+}

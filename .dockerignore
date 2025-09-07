@@ -1,0 +1,18 @@
+# dependencias locales
+node_modules
+**/.pnpm
+.pnpm-store
+
+# builds / artefactos
+dist
+coverage
+
+# VCS y editor
+.git
+.git/*
+.gitignore
+.vscode
+*.log
+
+# configs que no hacen falta dentro del contexto
+docker-compose*.yml
