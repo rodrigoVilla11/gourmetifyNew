@@ -1,14 +1,24 @@
-// src/ingredients/dto/ingredient.dto.ts
-import { IsEnum, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
-export enum UnitType { UNIT='UNIT', GRAM='GRAM', KILOGRAM='KILOGRAM', ML='ML', LITER='LITER', PACK='PACK', OTHER='OTHER' }
+// create-ingredient.dto.ts
+import { Transform } from 'class-transformer';
+import { IsEnum, IsNumberString, IsOptional, IsString } from 'class-validator';
+import { IngredientKind, UnitType } from '@prisma/client';
 
 export class CreateIngredientDto {
-  @IsNotEmpty() name: string;
+  @IsString() name: string;
+
+  @Transform(({ value }) => String(value).trim().toUpperCase())
   @IsEnum(UnitType) unit: UnitType;
-  @IsNumber() wastePct: number; // 0..100
+
+  @IsOptional()
+  @IsNumberString() wastePct?: string; // o number, como prefieras
+
+  @Transform(({ value }) => String(value).trim().toUpperCase())
+  @IsEnum(IngredientKind) kind: IngredientKind;
 }
+
 export class UpdateIngredientDto {
-  @IsOptional() name?: string;
-  @IsOptional() @IsEnum(UnitType) unit?: UnitType;
-  @IsOptional() @IsNumber() wastePct?: number;
+  name?: string;
+  unit?: 'UNIT' | 'GRAM' | 'KILOGRAM' | 'ML' | 'LITER' | 'PACK' | 'OTHER';
+  wastePct?: string | number;
+  kind?: 'RAW' | 'PREPARED';
 }

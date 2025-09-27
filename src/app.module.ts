@@ -27,9 +27,16 @@ import { IngredientsModule } from './ingredients/ingredients.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
 import { PurchaseOrdersModule } from './purchase-orders/purchase-orders.module';
+import { ProductionBatchesModule } from './production-batches/production-batches.module';
+import { DailyReportsModule } from './daily-reports/daily-reports.module';
+import { IngredientRecipesModule } from './ingredient-recipes/ingredient-recipes.module';
+import { EmployeesModule } from './employees/employees.module';
+import { EmployeeShiftsModule } from './employee-shifts/employee-shifts.module';
+import { EmployeePayModule } from './employee-pay/employee-pay.module';
+import { PayslipsModule } from './payslips/payslips.module';
 
 @Module({
-  imports: [PrismaModule, TenantsModule, BranchesModule, UsersModule, AccountsModule, FinanceModule, CategoriesModule, MovementsModule, TransfersModule, CashClosuresModule, CustomersModule, CustomerAddressesModule, CustomerTagsModule, CustomerTagLinksModule, CustomerNotesModule, OrdersModule, OrderItemsModule, OrderPaymentsModule, ProductCategoriesModule, ProductsModule, RecipesModule, IngredientsModule, InventoryModule, SuppliersModule, PurchaseOrdersModule],
+  imports: [PrismaModule, TenantsModule, BranchesModule, UsersModule, AccountsModule, FinanceModule, CategoriesModule, MovementsModule, TransfersModule, CashClosuresModule, CustomersModule, CustomerAddressesModule, CustomerTagsModule, CustomerTagLinksModule, CustomerNotesModule, OrdersModule, OrderItemsModule, OrderPaymentsModule, ProductCategoriesModule, ProductsModule, RecipesModule, IngredientsModule, InventoryModule, SuppliersModule, PurchaseOrdersModule, ProductionBatchesModule, DailyReportsModule, IngredientRecipesModule, EmployeesModule, EmployeeShiftsModule, EmployeePayModule, PayslipsModule],
   controllers: [AppController],
   providers: [AppService],
 })

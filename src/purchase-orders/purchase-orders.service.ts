@@ -24,23 +24,29 @@ export class PurchaseOrdersService {
     if (!sup)
       throw new BadRequestException('supplierId does not belong to branch');
 
+    // ✅ validar user creador
+    const user = await this.prisma.user.findFirst({
+      where: { id: dto.createdBy },
+      select: { id: true, branchId: true, tenantId: true },
+    });
+    if (!user) throw new BadRequestException('createdBy user not found');
+
     const now = new Date();
     return this.prisma.purchaseOrder.create({
       data: {
         supplierId: dto.supplierId,
         branchId,
-        status: PurchaseOrderStatus.DRAFT as any,
+        status: 'DRAFT' as any,
         date: new Date(dto.date),
         total: new Prisma.Decimal(0),
         paymentTerm: sup.defaultPaymentTerm,
-        createdBy: '', // opcional si querés setear user
+        createdBy: dto.createdBy, // 👈 usar el user real
         createdAt: now,
         updatedAt: now,
       },
       include: { items: true },
     });
   }
-
   list(branchId: string) {
     return this.prisma.purchaseOrder.findMany({
       where: { branchId },
