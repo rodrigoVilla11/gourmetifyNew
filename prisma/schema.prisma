@@ -682,10 +682,12 @@ enum TenantPlan {
 }
 
 enum UserRole {
+  SUPER_ADMIN
   ADMIN
   MANAGER
   CASHIER
   COOK
+  WAITER
 }
 
 enum AccountType {

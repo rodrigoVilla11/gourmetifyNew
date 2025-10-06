@@ -34,9 +34,10 @@ import { EmployeesModule } from './employees/employees.module';
 import { EmployeeShiftsModule } from './employee-shifts/employee-shifts.module';
 import { EmployeePayModule } from './employee-pay/employee-pay.module';
 import { PayslipsModule } from './payslips/payslips.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
-  imports: [PrismaModule, TenantsModule, BranchesModule, UsersModule, AccountsModule, FinanceModule, CategoriesModule, MovementsModule, TransfersModule, CashClosuresModule, CustomersModule, CustomerAddressesModule, CustomerTagsModule, CustomerTagLinksModule, CustomerNotesModule, OrdersModule, OrderItemsModule, OrderPaymentsModule, ProductCategoriesModule, ProductsModule, RecipesModule, IngredientsModule, InventoryModule, SuppliersModule, PurchaseOrdersModule, ProductionBatchesModule, DailyReportsModule, IngredientRecipesModule, EmployeesModule, EmployeeShiftsModule, EmployeePayModule, PayslipsModule],
+  imports: [PrismaModule, TenantsModule, BranchesModule, UsersModule, AccountsModule, FinanceModule, CategoriesModule, MovementsModule, TransfersModule, CashClosuresModule, CustomersModule, CustomerAddressesModule, CustomerTagsModule, CustomerTagLinksModule, CustomerNotesModule, OrdersModule, OrderItemsModule, OrderPaymentsModule, ProductCategoriesModule, ProductsModule, RecipesModule, IngredientsModule, InventoryModule, SuppliersModule, PurchaseOrdersModule, ProductionBatchesModule, DailyReportsModule, IngredientRecipesModule, EmployeesModule, EmployeeShiftsModule, EmployeePayModule, PayslipsModule, AuthModule],
   controllers: [AppController],
   providers: [AppService],
 })

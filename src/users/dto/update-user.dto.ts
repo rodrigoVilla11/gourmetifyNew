@@ -1,11 +1,11 @@
-import { IsEmail, IsEnum, IsOptional} from 'class-validator';
+import { IsBoolean, IsEmail, IsEnum, IsOptional, IsString} from 'class-validator';
 import { UserRole } from './create-user.dto';
 
 export class UpdateUserDto {
-  @IsOptional() name?: string;
+  @IsOptional() @IsString() name?: string;
   @IsOptional() @IsEmail() email?: string;
-  @IsOptional() password?: string;
+  @IsOptional() @IsString() password?: string; // si viene, re-hashear
   @IsOptional() @IsEnum(UserRole) role?: UserRole;
-  @IsOptional() isActive?: boolean;
-  @IsOptional() branchId?: string | null;
+  @IsOptional() @IsBoolean() isActive?: boolean;
+  @IsOptional() @IsString() branchId?: string | null;
 }
