@@ -73,12 +73,11 @@ export class UsersService {
     }
   }
 
-  // filtros/paginación opcionales
   findAll(
     tenantId: string,
     opts?: {
       q?: string;
-      branchId?: string | null;
+      branchId?: string | null | undefined; // undefined=ALL
       isActive?: boolean;
       skip?: number;
       take?: number;
@@ -87,14 +86,22 @@ export class UsersService {
     const where: any = { tenantId };
 
     if (typeof opts?.isActive === 'boolean') where.isActive = opts.isActive;
+
+    // Precisión:
+    // - undefined => no aplicar filtro por branch
+    // - null      => branchId IS NULL
+    // - string    => branchId = string
     if (opts?.branchId === null) where.branchId = null;
-    if (opts?.branchId) where.branchId = opts.branchId;
+    else if (typeof opts?.branchId === 'string') where.branchId = opts.branchId;
+
     if (opts?.q) {
       const q = opts.q.trim();
-      where.OR = [
-        { name: { contains: q, mode: 'insensitive' } },
-        { email: { contains: q, mode: 'insensitive' } },
-      ];
+      if (q) {
+        where.OR = [
+          { name: { contains: q, mode: 'insensitive' } },
+          { email: { contains: q, mode: 'insensitive' } },
+        ];
+      }
     }
 
     return this.prisma.user.findMany({

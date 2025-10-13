@@ -9,7 +9,6 @@ export class TenantsService {
 
   create(dto: CreateTenantDto) {
     const now = new Date();
-    console.log("created",dto )
     return this.prisma.tenant.create({
       data: { name: dto.name, plan: dto.plan, status: dto.status, createdAt: now, updatedAt: now },
     });

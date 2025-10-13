@@ -1,6 +1,17 @@
 import {
-  Controller, Get, Post, Body, Param, Patch, Delete, Query,
-  BadRequestException, UseGuards, ParseUUIDPipe,
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Patch,
+  Delete,
+  Query,
+  BadRequestException,
+  UseGuards,
+  ParseUUIDPipe,
+  ForbiddenException,
+  Req,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -38,30 +49,65 @@ export class UsersController {
   @Get()
   findAll(
     @TenantId() tenantId: string,
+    @Req() req: any,
     @Query('q') q?: string,
-    @Query('branchId') branchId?: string,
+    @Query('branchId') branchIdRaw?: string, // "ALL" | "null" | uuid | undefined
     @Query('isActive') isActiveRaw?: string,
     @Query('skip') skipRaw?: string,
     @Query('take') takeRaw?: string,
   ) {
     if (!tenantId) throw new BadRequestException('Missing tenantId');
-    const isActive = typeof isActiveRaw === 'string' ? isActiveRaw === 'true' : undefined;
+
+    const isActive =
+      typeof isActiveRaw === 'string' ? isActiveRaw === 'true' : undefined;
     const skip = Number.isFinite(+skipRaw!) ? +skipRaw! : undefined;
     const take = Number.isFinite(+takeRaw!) ? +takeRaw! : undefined;
 
-    // permitir branchId=null por query: ?branchId=null
-    const branch = branchId === 'null' ? null : branchId;
+    // user desde JWT (o tu guard)
+    const user = req.user as { role: string; branchId?: string | null };
 
-    return this.service.findAll(tenantId, { q, branchId: branch, isActive, skip, take });
+    // Normalización de branchId
+    // - "ALL"  => undefined (todas)
+    // - "null" => null (sin sucursal)
+    // - uuid   => uuid
+    const normFromQuery =
+      branchIdRaw === 'ALL'
+        ? undefined
+        : branchIdRaw === 'null'
+          ? null
+          : branchIdRaw || undefined;
+
+    let effectiveBranchId: string | null | undefined = normFromQuery;
+
+    const isAdminLike = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
+
+    if (!isAdminLike) {
+      // Para no-admins, forzar la sucursal efectiva (del JWT/header/ctx)
+      const currentBranch =
+        req.headers['x-branch-id'] ?? user?.branchId ?? null;
+
+      if (!currentBranch) {
+        // tu política: o 400 o 403 si requieren sucursal
+        throw new ForbiddenException('Branch requerida para este rol');
+      }
+
+      // Ignoramos cualquier branchId de query
+      effectiveBranchId = String(currentBranch);
+    }
+
+    return this.service.findAll(tenantId, {
+      q,
+      branchId: effectiveBranchId, // undefined=ALL, null=sin sucursal, uuid=filtrado
+      isActive,
+      skip,
+      take,
+    });
   }
 
   // ADMIN: lista por tenant vía query
   // @Roles('ADMIN')
   @Get('admin')
-  findAllAdmin(
-    @Query('tenantId') tenantId: string,
-    @Query('q') q?: string,
-  ) {
+  findAllAdmin(@Query('tenantId') tenantId: string, @Query('q') q?: string) {
     if (!tenantId) throw new BadRequestException('tenantId is required');
     return this.service.findAll(tenantId, { q });
   }

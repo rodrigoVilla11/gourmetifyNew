@@ -41,12 +41,6 @@ export class AuthService {
       expiresIn: '15m',
     });
 
-    console.log({
-      access_token,
-      role: user.role,
-      tenantId: user.tenantId,
-      user: { id: user.id, name: user.name, email: user.email },
-    });
     return {
       access_token,
       role: user.role,

@@ -104,7 +104,6 @@ async function main() {
     });
   }
 
-  console.log('✅ Seed completo: SUPER_ADMIN + tenants demo + branches + admins');
 }
 
 main()
